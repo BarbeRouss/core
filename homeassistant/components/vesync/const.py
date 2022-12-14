@@ -6,6 +6,7 @@ SERVICE_UPDATE_DEVS = "update_devices"
 
 VS_SWITCHES = "switches"
 VS_FANS = "fans"
+VS_HUMIDIFIERS = "humidifier"
 VS_LIGHTS = "lights"
 VS_SENSORS = "sensors"
 VS_MANAGER = "manager"
@@ -18,6 +19,7 @@ DEV_TYPE_TO_HA = {
     "ESWL01": "switch",
     "ESWL03": "switch",
     "ESO15-TB": "outlet",
+    "Classic300S": "humidifier",
 }
 
 SKU_TO_BASE_DEVICE = {
@@ -36,4 +38,5 @@ SKU_TO_BASE_DEVICE = {
     "LAP-C601S-WUS": "Core600S",  # Alt ID Model Core600S
     "LAP-C601S-WUSR": "Core600S",  # Alt ID Model Core600S
     "LAP-C601S-WEU": "Core600S",  # Alt ID Model Core600S
+    "Classic300S": "Classic300S",
 }

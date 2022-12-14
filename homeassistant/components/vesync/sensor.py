@@ -161,6 +161,15 @@ SENSORS: tuple[VeSyncSensorEntityDescription, ...] = (
         update_fn=update_energy,
         exists_fn=lambda device: ha_dev_type(device) == "outlet",
     ),
+    VeSyncSensorEntityDescription(
+        key="humidity",
+        name="current humidity",
+        device_class=SensorDeviceClass.HUMIDITY,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda device: device.details["humidity"],
+        exists_fn=lambda device: ha_dev_type(device) == "humidifier",
+    ),
 )
 
 
