@@ -5,18 +5,15 @@ import logging
 from typing import Any
 
 from homeassistant.components.humidifier import (
+    MODE_AUTO,
+    MODE_BOOST,
+    MODE_ECO,
+    MODE_NORMAL,
+    MODE_SLEEP,
     HumidifierDeviceClass,
     HumidifierEntity,
     HumidifierEntityFeature,
 )
-from homeassistant.components.humidifier.const import (
-    MODE_AUTO,
-    MODE_SLEEP,
-    MODE_BOOST,
-    MODE_NORMAL,
-    MODE_ECO,
-)
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -34,13 +31,6 @@ DEV_TYPE_TO_HA = {
 MIST_MODE_AUTO = "auto"
 MIST_MODE_SLEEP = "sleep"
 MIST_MODE_MANUAL = "manual"
-# MIST_MODE_TO_HA = {
-#     "auto": MODE_AUTO,
-#     "sleep": MODE_SLEEP,
-#     MIST_MODE_MANUAL: MODE_NORMAL,
-# }
-
-# HA_TO_MIST_MODE = {v: k for k, v in MIST_MODE_TO_HA.items()}
 
 
 async def async_setup_entry(
@@ -67,9 +57,11 @@ def _setup_entities(devices, async_add_entities):
     """Check if device is online and add entity."""
     entities = []
     for dev in devices:
-        if DEV_TYPE_TO_HA.get(SKU_TO_BASE_DEVICE.get(dev.device_type)) == "humidifier":
+        ha_dev_type = DEV_TYPE_TO_HA.get(SKU_TO_BASE_DEVICE.get(dev.device_type))
+        if ha_dev_type == "humidifier":
             entities.append(VeSyncHumidifierHA(dev))
-        else:
+        # Fan comes from the same list, but are handled in the fan component
+        elif ha_dev_type != "fan":
             _LOGGER.warning(
                 "%s - Unknown device type - %s", dev.device_name, dev.device_type
             )
@@ -90,6 +82,7 @@ class VeSyncHumidifierHA(VeSyncDevice, HumidifierEntity):
         super().__init__(smarthumidifier)
         self._device_class = HumidifierDeviceClass.HUMIDIFIER
         self.smarthumidifier = smarthumidifier
+        self._attr_name = smarthumidifier.device_name
 
         if MIST_MODE_AUTO in smarthumidifier.mist_modes:
             self._attr_available_modes.append(MODE_AUTO)
@@ -104,7 +97,7 @@ class VeSyncHumidifierHA(VeSyncDevice, HumidifierEntity):
         self._attr_max_humidity = 80
 
     @property
-    def device_class(self):
+    def device_class(self) -> HumidifierDeviceClass | None:
         """Return the device class of the humidifier."""
         return self._device_class
 
@@ -112,21 +105,21 @@ class VeSyncHumidifierHA(VeSyncDevice, HumidifierEntity):
     def mode(self) -> str | None:
         """Get mode."""
         if not self.details["mode"]:
-            return
-        elif self.details["mode"] == MIST_MODE_AUTO:
+            return None
+        if self.details["mode"] == MIST_MODE_AUTO:
             return MODE_AUTO
-        elif self.details["mode"] == MIST_MODE_SLEEP:
+        if self.details["mode"] == MIST_MODE_SLEEP:
             return MODE_SLEEP
-        elif self.details["mode"] == MIST_MODE_MANUAL:
+        if self.details["mode"] == MIST_MODE_MANUAL:
             if self.details["mist_virtual_level"] == 1:
                 return MODE_ECO
-            elif self.details["mist_virtual_level"] == max(
+            if self.details["mist_virtual_level"] == max(
                 self.smarthumidifier.mist_levels
             ):
                 return MODE_BOOST
             return MODE_NORMAL
-        else:
-            raise ValueError(f"{self.smarthumidifier.mode} is not a supported mode")
+
+        raise ValueError(f"{self.smarthumidifier.mode} is not a supported mode")
 
     def set_mode(self, mode: str) -> None:
         """Set new mode."""
@@ -157,6 +150,16 @@ class VeSyncHumidifierHA(VeSyncDevice, HumidifierEntity):
 
         self.schedule_update_ha_state()
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the fan."""
+        attr = {}
+
+        if hasattr(self.smarthumidifier, "night_light"):
+            attr["night_light"] = self.smarthumidifier.night_light
+
+        return attr
+
     def turn_on(
         self,
         percentage: int | None = None,
@@ -165,5 +168,7 @@ class VeSyncHumidifierHA(VeSyncDevice, HumidifierEntity):
     ) -> None:
         """Turn the device on."""
         self.smarthumidifier.turn_on()
-        self.set_humidity(percentage)
-        self.set_mode(preset_mode)
+        if percentage:
+            self.set_humidity(percentage)
+        if preset_mode:
+            self.set_mode(preset_mode)

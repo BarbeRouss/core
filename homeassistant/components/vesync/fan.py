@@ -17,17 +17,9 @@ from homeassistant.util.percentage import (
 )
 
 from .common import VeSyncDevice
-from .const import DOMAIN, SKU_TO_BASE_DEVICE, VS_DISCOVERY, VS_FANS
+from .const import DEV_TYPE_TO_HA, DOMAIN, SKU_TO_BASE_DEVICE, VS_DISCOVERY, VS_FANS
 
 _LOGGER = logging.getLogger(__name__)
-
-DEV_TYPE_TO_HA = {
-    "LV-PUR131S": "fan",
-    "Core200S": "fan",
-    "Core300S": "fan",
-    "Core400S": "fan",
-    "Core600S": "fan",
-}
 
 FAN_MODE_AUTO = "auto"
 FAN_MODE_SLEEP = "sleep"
@@ -72,9 +64,11 @@ def _setup_entities(devices, async_add_entities):
     """Check if device is online and add entity."""
     entities = []
     for dev in devices:
-        if DEV_TYPE_TO_HA.get(SKU_TO_BASE_DEVICE.get(dev.device_type)) == "fan":
+        ha_dev_type = DEV_TYPE_TO_HA.get(SKU_TO_BASE_DEVICE.get(dev.device_type))
+        if ha_dev_type == "fan":
             entities.append(VeSyncFanHA(dev))
-        else:
+        # Humidifier comes from the same list, but are handled in the humidifier component
+        elif ha_dev_type != "humidifier":
             _LOGGER.warning(
                 "%s - Unknown device type - %s", dev.device_name, dev.device_type
             )

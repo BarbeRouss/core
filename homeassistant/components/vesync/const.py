@@ -20,6 +20,11 @@ DEV_TYPE_TO_HA = {
     "ESWL03": "switch",
     "ESO15-TB": "outlet",
     "Classic300S": "humidifier",
+    "LV-PUR131S": "fan",
+    "Core200S": "fan",
+    "Core300S": "fan",
+    "Core400S": "fan",
+    "Core600S": "fan",
 }
 
 SKU_TO_BASE_DEVICE = {
